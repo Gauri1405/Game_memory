@@ -11,9 +11,6 @@ export default function Home() {
     "/img5.png", "/img6.png", "/img7.png", "/img8.png",
   ];
 
-  const [playerName, setPlayerName] = useState("");
-  const [nameEntered, setNameEntered] = useState(false);
-
   type CardType = {
     id: number;
     image: string;
@@ -21,29 +18,29 @@ export default function Home() {
     matched: boolean;
   };
 
+  const [playerName, setPlayerName] = useState("");
+  const [nameEntered, setNameEntered] = useState(false);
   const [cards, setCards] = useState<CardType[]>([]);
   const [firstCard, setFirstCard] = useState<number | null>(null);
-  const [secondCard, setSecondCard] = useState<number | null>(null);
-
   const [moves, setMoves] = useState(0);
   const [timer, setTimer] = useState(0);
   const [running, setRunning] = useState(false);
   const [locked, setLocked] = useState(false);
   const [win, setWin] = useState(false);
 
-  // ------------ SAVE PROGRESS ------------------
+  // ---------------- SAVE PROGRESS ----------------
   const saveProgress = async () => {
     if (!playerName) return;
 
     await supabase.from("memory_progress").upsert({
       player_name: playerName,
       cards: cards,
-      moves: moves,
-      timer: timer,
+      moves,
+      timer,
     });
   };
 
-  // ------------ LOAD PROGRESS ------------------
+  // ---------------- LOAD PROGRESS ----------------
   const loadProgress = async (name: string) => {
     const { data } = await supabase
       .from("memory_progress")
@@ -62,20 +59,18 @@ export default function Home() {
     return false;
   };
 
-  // ------------ TIMER LOGIC ------------------
+  // ---------------- TIMER ----------------
   useEffect(() => {
-    let interval: ReturnType<typeof setInterval> | null = null;
+    let interval: any;
 
     if (running) {
       interval = setInterval(() => setTimer((t) => t + 1), 1000);
     }
 
-    return () => {
-      if (interval) clearInterval(interval);
-    };
+    return () => clearInterval(interval);
   }, [running]);
 
-  // ------------ CHECK WIN ------------------
+  // ---------------- CHECK WIN ----------------
   useEffect(() => {
     if (cards.length > 0 && cards.every((c) => c.matched)) {
       setWin(true);
@@ -83,7 +78,7 @@ export default function Home() {
     }
   }, [cards]);
 
-  // ------------ START GAME ------------------
+  // ---------------- START GAME ----------------
   const startGame = () => {
     const pairImages = [...images, ...images];
     const shuffled = shuffleArray(
@@ -99,48 +94,46 @@ export default function Home() {
     setRunning(true);
   };
 
-  // ------------ CARD CLICK ------------------
-  const handleCardClick = (i: number) => {
+  // ---------------- CARD CLICK ----------------
+  const handleCardClick = (index: number) => {
     if (locked) return;
-    if (cards[i].flipped || cards[i].matched) return;
+    if (cards[index].flipped || cards[index].matched) return;
 
-    const updatedCards = [...cards];
-    updatedCards[i].flipped = true;
-    setCards(updatedCards);
-
-    if (firstCard === null) {
-      setFirstCard(i);
-    } else {
-      setSecondCard(i);
-      setLocked(true);
-      setMoves((m) => m + 1);
-
-      setTimeout(() => checkMatch(i), 700);
-    }
-  };
-
-  // ------------ MATCH CHECK ------------------
-  const checkMatch = (secondIndex: number) => {
-    const firstIndex = firstCard as number;
     const newCards = [...cards];
-
-    if (cards[firstIndex].image === cards[secondIndex].image) {
-      newCards[firstIndex].matched = true;
-      newCards[secondIndex].matched = true;
-    } else {
-      newCards[firstIndex].flipped = false;
-      newCards[secondIndex].flipped = false;
-    }
+    newCards[index].flipped = true;
 
     setCards(newCards);
-    setFirstCard(null);
-    setSecondCard(null);
-    setLocked(false);
 
-    saveProgress();
+    if (firstCard === null) {
+      setFirstCard(index);
+    } else {
+      setLocked(true);
+      const firstIndex = firstCard;
+      const secondIndex = index;
+
+      setMoves((m) => m + 1);
+
+      setTimeout(() => {
+        const updated = [...newCards];
+
+        if (updated[firstIndex].image === updated[secondIndex].image) {
+          updated[firstIndex].matched = true;
+          updated[secondIndex].matched = true;
+        } else {
+          updated[firstIndex].flipped = false;
+          updated[secondIndex].flipped = false;
+        }
+
+        setCards(updated);
+        setFirstCard(null);
+        setLocked(false);
+
+        saveProgress();
+      }, 700);
+    }
   };
 
-  // ------------ RESTART GAME ------------------
+  // ---------------- RESTART ----------------
   const restartGame = () => {
     setWin(false);
     setMoves(0);
@@ -148,7 +141,7 @@ export default function Home() {
     startGame();
   };
 
-  // ------------ NAME INPUT SCREEN ------------------
+  // ---------------- NAME INPUT SCREEN ----------------
   if (!nameEntered) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
@@ -163,10 +156,9 @@ export default function Home() {
         <button
           className="bg-blue-600 px-4 py-2 rounded"
           onClick={async () => {
-            if (playerName.trim() === "") return;
+            if (!playerName.trim()) return;
 
             const resumed = await loadProgress(playerName);
-
             if (!resumed) startGame();
 
             setNameEntered(true);
@@ -178,7 +170,7 @@ export default function Home() {
     );
   }
 
-  // ------------ WIN SCREEN ------------------
+  // ---------------- WIN SCREEN ----------------
   if (win) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
@@ -196,7 +188,7 @@ export default function Home() {
     );
   }
 
-  // ------------ MAIN GAME UI ------------------
+  // ---------------- MAIN GAME UI ----------------
   return (
     <div className="min-h-screen p-6 flex flex-col items-center">
       <h1 className="text-3xl mb-2">Memory Puzzle Game</h1>
@@ -207,7 +199,8 @@ export default function Home() {
         <p>🎯 Moves: {moves}</p>
       </div>
 
-      <div className="grid grid-cols-4 gap-4">
+      {/* RESPONSIVE GRID FIXED */}
+      <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-6 gap-4 w-400xl max-w-400xl">
         {cards.map((card, i) => (
           <Card key={i} card={card} onClick={() => handleCardClick(i)} />
         ))}
