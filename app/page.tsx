@@ -14,7 +14,14 @@ export default function Home() {
   const [playerName, setPlayerName] = useState("");
   const [nameEntered, setNameEntered] = useState(false);
 
-  const [cards, setCards] = useState<any[]>([]);
+  type CardType = {
+    id: number;
+    image: string;
+    flipped: boolean;
+    matched: boolean;
+  };
+
+  const [cards, setCards] = useState<CardType[]>([]);
   const [firstCard, setFirstCard] = useState<number | null>(null);
   const [secondCard, setSecondCard] = useState<number | null>(null);
 
@@ -57,13 +64,15 @@ export default function Home() {
 
   // ------------ TIMER LOGIC ------------------
   useEffect(() => {
-    let interval: any;
+    let interval: ReturnType<typeof setInterval> | null = null;
 
     if (running) {
       interval = setInterval(() => setTimer((t) => t + 1), 1000);
     }
 
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [running]);
 
   // ------------ CHECK WIN ------------------
